@@ -1,8 +1,11 @@
+# Source Code: https://github.com/Sanjeev-Thiyagarajan/Terraform-Crash-Course/blob/master/main.tf 
+# Tutorial:    https://www.youtube.com/watch?v=SLB_c_ayRMo
+
 # Configure the AWS Provider
 provider "aws" {
   region = "eu-west-2"
-  access_key = "AKIAUGOFNQRNX6NZSZTN"
-  secret_key = "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"
+  access_key = ""
+  secret_key = ""
 }
 
 
@@ -42,9 +45,17 @@ resource "aws_route_table" "prod-route-table" {
 }
 
 # 4. Create a Subnet
+variable "subnet_prefix" {
+    description = "Subnet cidr block"
+    # default =
+    # type = 
+    //Default - When user does not specify input value
+    //Type - value of the variable e.g. String, numbers, lists, maps, boolean etc. 
+}
+
 resource "aws_subnet" "subnet-1" {
   vpc_id     = aws_vpc.prod-vpc.id
-  cidr_block = "10.0.1.0/24"
+  cidr_block = var.subnet_prefix
   availability_zone = "eu-west-2a"
   tags = {
     Name = "prod_subnet"
@@ -68,7 +79,7 @@ resource "aws_security_group" "allow_web" {
     from_port        = 443
     to_port          = 443
     protocol         = "tcp"
-    cidr_blocks      = [aws_vpc.prod-vpc.cidr_block]
+    cidr_blocks      = ["0.0.0.0/0"]
   }
   
   ingress {
@@ -76,15 +87,15 @@ resource "aws_security_group" "allow_web" {
     from_port        = 80
     to_port          = 80
     protocol         = "tcp"
-    cidr_blocks      = [aws_vpc.prod-vpc.cidr_block]
+    cidr_blocks      = ["0.0.0.0/0"]
   }
   
   ingress {
     description      = "SSH"
-    from_port        = 2
-    to_port          = 2
+    from_port        = 22
+    to_port          = 22
     protocol         = "tcp"
-    cidr_blocks      = [aws_vpc.prod-vpc.cidr_block]
+    cidr_blocks      = ["0.0.0.0/0"]
   }
 
   egress {
@@ -128,10 +139,10 @@ resource "aws_instance" "web-server-instance" {
 
     user_data = <<-EOF
                 #!/bin/bash
-                sudo apt install -y
+                sudo apt update -y
                 sudo apt install apache2 -y
                 sudo systemctl start apache2
-                sudo bash -c echo 'Your very first Web Server > /var/www/html/index.html'
+                sudo bash -c 'echo Your very FIRST Web Server > /var/www/html/index.html'
                 EOF
 
     tags = {
@@ -139,7 +150,10 @@ resource "aws_instance" "web-server-instance" {
     }
 }
 
-
+# Output information on current state
+output "server_public_ip" {
+  value = aws_eip.one.public_ip
+}
 
 # Example Format
 # resource "<provider>_<resource_type>" "name" {
@@ -147,3 +161,6 @@ resource "aws_instance" "web-server-instance" {
 #     key = "value"
 #     key2 = "another value"
 # }
+
+# ssh -i "main-key.cer" ubuntu@18.168.87.100
+# curl -L http://localhost/index.html
